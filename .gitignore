@@ -1,0 +1,12 @@
+.idea/
+__pycache__/
+*.pyc
+
+# Data and models
+data/raw/
+data/processed/
+checkpoints/
+outputs/
+
+# Ignore the assignment PDF if it's not needed in repo (optional, but probably good)
+DL_3.pdf
