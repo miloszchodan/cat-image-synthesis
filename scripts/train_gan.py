@@ -5,10 +5,13 @@ import torchvision
 from torch.utils.data import DataLoader
 import sys
 import os
+from pathlib import Path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from datasets.numpy_dataset import NumpyDataset
 from models.gan import Generator, Critic, initialize_weights
+from common import set_seed
 import os
+ROOT = Path(__file__).resolve().parent.parent
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 LEARNING_RATE = 1e-4
 BATCH_SIZE = 64
@@ -42,15 +45,21 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", type=int, default=50, help="Number of epochs")
     parser.add_argument("--batch-size", type=int, default=64, help="Batch size")
+    parser.add_argument("--data", type=Path, default=ROOT / "data" / "processed" / "cats_64.npy")
+    parser.add_argument("--checkpoint-dir", type=Path, default=ROOT / "checkpoints" / "gan")
+    parser.add_argument("--samples-dir", type=Path, default=ROOT / "outputs" / "gan" / "samples")
     parser.add_argument("--resume", type=str, default="", help="Path to checkpoint to resume from")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument("--deterministic", action="store_true", help="Use deterministic cuDNN settings")
     args = parser.parse_args()
+    set_seed(args.seed, deterministic=args.deterministic)
     global BATCH_SIZE, NUM_EPOCHS
     BATCH_SIZE = args.batch_size
     NUM_EPOCHS = args.epochs
-    os.makedirs("outputs/gan/samples", exist_ok=True)
-    os.makedirs("checkpoints/gan", exist_ok=True)
+    args.samples_dir.mkdir(parents=True, exist_ok=True)
+    args.checkpoint_dir.mkdir(parents=True, exist_ok=True)
     print("Loading dataset...")
-    dataset = NumpyDataset("data/processed/cats_64.npy")
+    dataset = NumpyDataset(args.data)
     loader = DataLoader(
         dataset, 
         batch_size=BATCH_SIZE, 
@@ -59,7 +68,6 @@ def main():
         pin_memory=True, 
         persistent_workers=True
     )
-    torch.backends.cudnn.benchmark = True
     gen = Generator(Z_DIM, FEATURES_GEN, CHANNELS_IMG).to(DEVICE)
     critic = Critic(CHANNELS_IMG, FEATURES_CRITIC).to(DEVICE)
     initialize_weights(gen)
@@ -117,7 +125,7 @@ def main():
                         fake[:32], normalize=True, value_range=(-1, 1)
                     )
                     torchvision.utils.save_image(
-                        img_grid_fake, f"outputs/gan/samples/epoch_{epoch}_step_{step}.png"
+                        img_grid_fake, args.samples_dir / f"epoch_{epoch}_step_{step}.png"
                     )
                 step += 1
         torch.save({
@@ -126,6 +134,6 @@ def main():
             'critic_state_dict': critic.state_dict(),
             'opt_gen_state_dict': opt_gen.state_dict(),
             'opt_critic_state_dict': opt_critic.state_dict(),
-        }, f"checkpoints/gan/wgan_gp_latest.pth")
+        }, args.checkpoint_dir / "wgan_gp_latest.pth")
 if __name__ == "__main__":
     main()

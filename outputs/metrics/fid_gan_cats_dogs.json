@@ -1,0 +1,11 @@
+{
+  "data": "data\\processed\\cats_dogs_64.npy",
+  "num_samples": 512,
+  "seed": 42,
+  "fid": {
+    "gan": {
+      "checkpoint": "checkpoints\\gan_cats_dogs\\wgan_gp_latest.pth",
+      "score": 212.63753870052045
+    }
+  }
+}

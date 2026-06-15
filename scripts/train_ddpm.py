@@ -4,11 +4,14 @@ import torchvision
 from torch.utils.data import DataLoader
 import sys
 import os
+from pathlib import Path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from datasets.numpy_dataset import NumpyDataset
 from models.unet import UNet
 from models.ddpm import DDPM
+from common import set_seed
 import os
+ROOT = Path(__file__).resolve().parent.parent
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 LEARNING_RATE = 1e-4
 BATCH_SIZE = 8
@@ -21,15 +24,21 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--epochs", type=int, default=100, help="Number of epochs")
     parser.add_argument("--batch-size", type=int, default=8, help="Batch size")
+    parser.add_argument("--data", type=Path, default=ROOT / "data" / "processed" / "cats_64.npy")
+    parser.add_argument("--checkpoint-dir", type=Path, default=ROOT / "checkpoints" / "ddpm")
+    parser.add_argument("--samples-dir", type=Path, default=ROOT / "outputs" / "ddpm" / "samples")
     parser.add_argument("--resume", type=str, default="", help="Path to checkpoint to resume from")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument("--deterministic", action="store_true", help="Use deterministic cuDNN settings")
     args = parser.parse_args()
+    set_seed(args.seed, deterministic=args.deterministic)
     global BATCH_SIZE, NUM_EPOCHS
     BATCH_SIZE = args.batch_size
     NUM_EPOCHS = args.epochs
-    os.makedirs("outputs/ddpm/samples", exist_ok=True)
-    os.makedirs("checkpoints/ddpm", exist_ok=True)
+    args.samples_dir.mkdir(parents=True, exist_ok=True)
+    args.checkpoint_dir.mkdir(parents=True, exist_ok=True)
     print("Loading dataset...")
-    dataset = NumpyDataset("data/processed/cats_64.npy")
+    dataset = NumpyDataset(args.data)
     loader = DataLoader(
         dataset, 
         batch_size=BATCH_SIZE, 
@@ -38,7 +47,6 @@ def main():
         pin_memory=True, 
         persistent_workers=True
     )
-    torch.backends.cudnn.benchmark = True
     network = UNet(image_channels=CHANNELS_IMG)
     model = DDPM(network, num_timesteps=NUM_TIMESTEPS, device=DEVICE)
     model.to(DEVICE)
@@ -75,13 +83,13 @@ def main():
                     samples, normalize=True, value_range=(-1, 1), nrow=4
                 )
                 torchvision.utils.save_image(
-                    img_grid, f"outputs/ddpm/samples/epoch_{epoch}.png"
+                    img_grid, args.samples_dir / f"epoch_{epoch}.png"
                 )
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 'loss': avg_loss,
-            }, f"checkpoints/ddpm/ddpm_latest.pth")
+            }, args.checkpoint_dir / "ddpm_latest.pth")
 if __name__ == "__main__":
     main()

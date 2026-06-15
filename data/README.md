@@ -1,31 +1,41 @@
 # Data Directory
 
-This directory contains datasets used in the Cat Image Synthesis project.
+This directory stores local datasets used by the Cat Image Synthesis project. Raw data and processed tensors are ignored by git.
 
 ## Structure
 
-```
+```text
 data/
-├── raw/
-│   ├── cats/          # Raw cat images from Kaggle Dogs vs. Cats dataset
-│   └── dogs/          # Raw dog images (for Experiment V)
-└── processed/
-    ├── cats_64/       # Preprocessed cat images (64x64)
-    └── cats_dogs_64/  # Preprocessed cats+dogs images (64x64, for Exp. V)
+  raw/
+    cats/          # Crawford cat dataset, usually CAT_00 ... CAT_06 subfolders
+    dogs/          # Dogs from Kaggle Dogs vs Cats, for the exploratory extension
+  processed/
+    cats_64.npy       # Cat-only 64x64 tensor, shape (N, 3, 64, 64), values [-1, 1]
+    cats_dogs_64.npy  # Combined cats+dogs tensor for the exploratory experiment
 ```
 
-## Datasets
+## Primary Dataset
 
-### Primary: Cats (from Dogs vs. Cats)
-- **Source:** Kaggle — `dogs-vs-cats`
-- **Command:** `kaggle competitions download -c dogs-vs-cats`
-- ~12,500 cat images
+- Source: Kaggle `crawford/cat-dataset`
+- Task: train generative models on cat images.
+- Local target: `data/raw/cats/`
 
-### Secondary: AFHQ (Animal Faces HQ) — optional upgrade
-- **Source:** Kaggle — `andrewmvd/animal-faces`
-- High-quality 512x512 animal faces (cats, dogs, wildlife)
-- **Command:** `kaggle datasets download -d andrewmvd/animal-faces`
+Preprocess:
 
-## Download Script
+```powershell
+python scripts/preprocess_data.py --input data/raw/cats --output data/processed/cats_64.npy --preview
+```
 
-Run `scripts/download_data.py` to automatically download and organize all datasets.
+## Exploratory Cats vs Dogs Dataset
+
+- Source: Kaggle competition `dogs-vs-cats`
+- Task: combine dogs with the cat dataset and retrain one model from scratch.
+- Local target: `data/raw/dogs/`
+
+Prepare and preprocess:
+
+```powershell
+python scripts/prepare_cats_dogs.py --dogs-zip path\to\dogs-vs-cats.zip --build-npy --preview
+```
+
+This extension is intentionally exploratory. The report should discuss whether generated samples remain class-distinct or become cat/dog hybrids.

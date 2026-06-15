@@ -5,8 +5,20 @@ __pycache__/
 # Data and models
 data/raw/
 data/processed/
+data/*.zip
+data/_tmp*/
 checkpoints/
 outputs/
+!outputs/
+outputs/*
+!outputs/metrics/
+outputs/metrics/*
+!outputs/metrics/*.json
+!outputs/interpolation/
+outputs/interpolation/*
+!outputs/interpolation/*.png
+!outputs/interpolation/*.npz
+.torch/
 
 # Ignore the assignment PDF if it's not needed in repo (optional, but probably good)
 DL_3.pdf

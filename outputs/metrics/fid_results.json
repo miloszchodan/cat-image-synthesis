@@ -1,0 +1,19 @@
+{
+  "data": "data\\processed\\cats_64.npy",
+  "num_samples": 512,
+  "seed": 42,
+  "fid": {
+    "vae": {
+      "checkpoint": "checkpoints\\vae\\vae_best.pth",
+      "score": 230.35965667844613
+    },
+    "gan": {
+      "checkpoint": "checkpoints\\gan\\wgan_gp_latest.pth",
+      "score": 212.16463355352408
+    },
+    "ddpm": {
+      "checkpoint": "checkpoints\\ddpm\\ddpm_latest.pth",
+      "score": 178.96488954908855
+    }
+  }
+}

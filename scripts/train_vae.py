@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.append(str(ROOT))
 from datasets.numpy_dataset import NumpyDataset
 from models.vae import VAE
+from common import get_device, set_seed
 def loss_function(recon_x, x, mu, logvar, beta=1.0):
     mse = nn.functional.mse_loss(recon_x, x, reduction='sum') / x.size(0)
     kld = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp()) / x.size(0)
@@ -23,15 +24,20 @@ def main():
     parser.add_argument("--batch-size", type=int, default=128, help="Batch size")
     parser.add_argument("--epochs", type=int, default=200, help="Number of epochs")
     parser.add_argument("--lr", type=float, default=2e-4, help="Learning rate")
+    parser.add_argument("--checkpoint-dir", type=Path, default=ROOT / "checkpoints" / "vae")
+    parser.add_argument("--samples-dir", type=Path, default=ROOT / "outputs" / "vae" / "samples")
     parser.add_argument("--resume", action="store_true", help="Resume from vae_latest.pth if exists")
     parser.add_argument("--latent-dim", type=int, default=128, help="Latent dimension size")
     parser.add_argument("--beta", type=float, default=1.0, help="Beta weight for KL Divergence")
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument("--deterministic", action="store_true", help="Use deterministic cuDNN settings")
     args = parser.parse_args()
-    checkpoints_dir = ROOT / "checkpoints" / "vae"
-    samples_dir = ROOT / "outputs" / "vae" / "samples"
+    set_seed(args.seed, deterministic=args.deterministic)
+    checkpoints_dir = args.checkpoint_dir
+    samples_dir = args.samples_dir
     checkpoints_dir.mkdir(parents=True, exist_ok=True)
     samples_dir.mkdir(parents=True, exist_ok=True)
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = get_device()
     print(f"Using device: {device}")
     if not args.data.exists():
         print(f"[ERROR] Data file not found: {args.data}")
@@ -48,7 +54,6 @@ def main():
         persistent_workers=True
     )
     print(f"Dataset loaded: {len(dataset)} images.")
-    torch.backends.cudnn.benchmark = True
     model = VAE(latent_dim=args.latent_dim).to(device)
     optimizer = optim.Adam(model.parameters(), lr=args.lr)
     fixed_noise = torch.randn(64, args.latent_dim).to(device)
